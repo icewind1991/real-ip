@@ -11,7 +11,7 @@
 //! To stop clients from being able to spoof the remote ip, you are required to configure the trusted proxies
 //! which are allowed to set the forwarded headers.
 //!
-//! Trusted proxies are configured as a list of [`IpNetwork`]s.
+//! Trusted proxies are configured as a list of [`IpNetwork`]s, which can be a single ip or an ip range.
 //!
 //! ## Examples
 //!
@@ -56,6 +56,7 @@
 //! assert_eq!(Some(IpAddr::from([203, 0, 113, 10])), client_ip);
 //! ```
 
+use comma_separated::CommaSeparatedIterator;
 use http::Request;
 use ipnetwork::IpNetwork;
 use itertools::Either;
@@ -64,8 +65,6 @@ use std::borrow::Cow;
 use std::iter::{empty, once, IntoIterator};
 use std::net::IpAddr;
 use std::str::FromStr;
-use comma_separated::CommaSeparatedIterator;
-
 
 /// Get the "real-ip" of an incoming request.
 ///
@@ -95,9 +94,7 @@ pub fn real_ip<B>(
 /// Extracts the ip addresses from the "forwarded for" chain from a request
 ///
 /// Note that this doesn't perform any validation against clients forging the headers
-pub fn get_forwarded_for<'a, B>(
-    request: &'a Request<B>,
-) -> impl DoubleEndedIterator<Item = IpAddr> + 'a {
+pub fn get_forwarded_for<B>(request: &Request<B>) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
     let headers = request.headers();
     if let Some(header) = headers.get("forwarded") {
         let header = header.to_str().unwrap_or_default();
@@ -126,7 +123,7 @@ pub fn get_forwarded_for<'a, B>(
     if let Some(header) = headers.get("x-real-ip") {
         let header = header.to_str().unwrap_or_default();
         return Either::Right(Either::Left(
-            IpAddr::from_str(maybe_bracketed(&maybe_quoted(&header))).into_iter(),
+            IpAddr::from_str(maybe_bracketed(&maybe_quoted(header))).into_iter(),
         ));
     }
 

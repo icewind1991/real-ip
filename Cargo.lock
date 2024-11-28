@@ -92,7 +92,9 @@ dependencies = [
 
 [[package]]
 name = "rfc7239"
-version = "0.1.1"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c681391a1de47aad1d2bbd57074cbb36b2f230192e96504480493fbfc728779"
 dependencies = [
  "uncased",
 ]
