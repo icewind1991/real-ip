@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+http = "1.1.0"
+rfc7239 = { version = "0.1.1", path = "../rfc7239" }
+comma-separated = "0.1.0"
+ipnetwork = "0.20.0"
+itertools = "0.13.0"
