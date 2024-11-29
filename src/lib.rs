@@ -7,7 +7,7 @@
 //! To stop clients from being able to spoof the remote ip, you are required to configure the trusted proxies
 //! which are allowed to set the forwarded headers.
 //!
-//! Trusted proxies are configured as a list of [`IpNetwork`]s, which can be a single ip or an ip range.
+//! Trusted proxies are configured as a list of [`IpNet`]s, which can be a single ip or an ip range.
 //!
 //! Note that if multiple forwarded-for addresses are present, which can be the case when using nested reverse proxies,
 //! all proxies in the chain have to be within the list of trusted proxies.
@@ -19,8 +19,7 @@
 //! ```
 //! # use http::Request;
 //! # use std::net::IpAddr;
-//! # use ipnetwork::IpNetwork;
-//! # use real_ip::real_ip;
+//! # use real_ip::{real_ip, IpNet};
 //! #
 //! // in a real program this info would of course come from the http server
 //! let incoming_ip = IpAddr::from([10, 0, 0, 1]);
@@ -29,7 +28,7 @@
 //! // the reverse-proxies in our network that we trust
 //! let trusted_proxies = [
 //!     IpAddr::from([10, 0, 0, 1]).into(),
-//!     IpNetwork::new(IpAddr::from([10, 10, 10, 0]), 24).unwrap(), // 10.10.10.0/24
+//!     IpNet::new_assert(IpAddr::from([10, 10, 10, 0]), 24), // 10.10.10.0/24
 //! ];
 //! let client_ip = real_ip(request.headers(), incoming_ip, &trusted_proxies);
 //! assert_eq!(Some(IpAddr::from([192, 0, 2, 1])), client_ip);
@@ -41,15 +40,14 @@
 //! ```
 //! # use http::Request;
 //! # use std::net::IpAddr;
-//! # use ipnetwork::IpNetwork;
-//! # use real_ip::real_ip;
+//! # use real_ip::{real_ip, IpNet};
 //! #
 //! let incoming_ip = IpAddr::from([10, 0, 0, 1]);
 //! let request = Request::builder().header("forwarded", "for=192.0.2.1, for=203.0.113.10;proto=https").body(()).unwrap();
 //!
 //! let trusted_proxies = [
 //!     IpAddr::from([10, 0, 0, 1]).into(),
-//!     IpNetwork::new(IpAddr::from([10, 10, 10, 0]), 24).unwrap(),
+//!     IpNet::new_assert(IpAddr::from([10, 10, 10, 0]), 24),
 //! ];
 //! let client_ip = real_ip(request.headers(), incoming_ip, &trusted_proxies);
 //! assert_eq!(Some(IpAddr::from([203, 0, 113, 10])), client_ip);
@@ -58,11 +56,11 @@
 pub mod headers;
 
 use http::HeaderMap;
-use ipnetwork::IpNetwork;
 use itertools::Either;
 use std::iter::{empty, once};
 use std::net::IpAddr;
 use crate::headers::{extract_forwarded_header, extract_real_ip_header, extract_x_forwarded_for_header};
+pub use ipnet::IpNet;
 
 /// Get the "real-ip" of an incoming request.
 ///
@@ -70,7 +68,7 @@ use crate::headers::{extract_forwarded_header, extract_real_ip_header, extract_x
 pub fn real_ip(
     headers: &HeaderMap,
     remote: IpAddr,
-    trusted_proxies: &[IpNetwork],
+    trusted_proxies: &[IpNet],
 ) -> Option<IpAddr> {
     let mut hops = get_forwarded_for(headers).chain(once(remote));
     let first = hops.next();
@@ -78,7 +76,7 @@ pub fn real_ip(
 
     'outer: for hop in hops.rev() {
         for proxy in trusted_proxies {
-            if proxy.contains(hop) {
+            if proxy.contains(&hop) {
                 continue 'outer;
             }
         }

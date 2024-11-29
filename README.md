@@ -9,8 +9,7 @@ See the [crate documentation](https://docs.rs/real-ip) for more details and exam
 ```rust
 use http::Request;
 use std::net::IpAddr;
-use ipnetwork::IpNetwork;
-use real_ip::real_ip;
+use real_ip::{real_ip, IpNet};
 
 // in a real program this info would of course come from the http server
 let incoming_ip = IpAddr::from([10, 0, 0, 1]);
