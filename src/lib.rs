@@ -55,15 +55,14 @@
 //! assert_eq!(Some(IpAddr::from([203, 0, 113, 10])), client_ip);
 //! ```
 
-use comma_separated::CommaSeparatedIterator;
+pub mod headers;
+
 use http::HeaderMap;
 use ipnetwork::IpNetwork;
 use itertools::Either;
-use rfc7239::{parse, Forwarded, NodeIdentifier, NodeName};
-use std::borrow::Cow;
-use std::iter::{empty, once, IntoIterator};
+use std::iter::{empty, once};
 use std::net::IpAddr;
-use std::str::FromStr;
+use crate::headers::{extract_forwarded_header, extract_real_ip_header, extract_x_forwarded_for_header};
 
 /// Get the "real-ip" of an incoming request.
 ///
@@ -96,76 +95,20 @@ pub fn real_ip(
 pub fn get_forwarded_for(headers: &HeaderMap) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
     if let Some(header) = headers.get("forwarded") {
         let header = header.to_str().unwrap_or_default();
-        let hops = parse(header).filter_map(|forward| match forward {
-            Ok(Forwarded {
-                forwarded_for:
-                    Some(NodeIdentifier {
-                        name: NodeName::Ip(ip),
-                        ..
-                    }),
-                ..
-            }) => Some(ip),
-            _ => None,
-        });
-        return Either::Left(Either::Left(hops));
+        return Either::Left(Either::Left(extract_forwarded_header(header)));
     }
 
     if let Some(header) = headers.get("x-forwarded-for") {
         let header = header.to_str().unwrap_or_default();
-        let hops = CommaSeparatedIterator::new(header)
-            .map(str::trim)
-            .flat_map(|x| IpAddr::from_str(maybe_bracketed(&maybe_quoted(x))));
-        return Either::Left(Either::Right(hops));
+        return Either::Left(Either::Right(extract_x_forwarded_for_header(header)));
     }
 
     if let Some(header) = headers.get("x-real-ip") {
         let header = header.to_str().unwrap_or_default();
-        return Either::Right(Either::Left(
-            IpAddr::from_str(maybe_bracketed(&maybe_quoted(header))).into_iter(),
-        ));
+        return Either::Right(Either::Left(extract_real_ip_header(header)));
     }
 
     Either::Right(Either::Right(empty()))
-}
-
-enum EscapeState {
-    Normal,
-    Escaped,
-}
-
-fn maybe_quoted(x: &str) -> Cow<str> {
-    let mut i = x.chars();
-    if i.next() == Some('"') {
-        let mut s = String::with_capacity(x.len());
-        let mut state = EscapeState::Normal;
-        for c in i {
-            state = match state {
-                EscapeState::Normal => match c {
-                    '"' => break,
-                    '\\' => EscapeState::Escaped,
-                    _ => {
-                        s.push(c);
-                        EscapeState::Normal
-                    }
-                },
-                EscapeState::Escaped => {
-                    s.push(c);
-                    EscapeState::Normal
-                }
-            };
-        }
-        s.into()
-    } else {
-        x.into()
-    }
-}
-
-fn maybe_bracketed(x: &str) -> &str {
-    if x.as_bytes().first() == Some(&b'[') && x.as_bytes().last() == Some(&b']') {
-        &x[1..x.len() - 1]
-    } else {
-        x
-    }
 }
 
 #[allow(dead_code)]
