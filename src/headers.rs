@@ -1,7 +1,7 @@
 use comma_separated::CommaSeparatedIterator;
 use rfc7239::{parse, Forwarded, NodeIdentifier, NodeName};
 use std::borrow::Cow;
-use std::iter::{ IntoIterator};
+use std::iter::IntoIterator;
 use std::net::IpAddr;
 use std::str::FromStr;
 
@@ -19,16 +19,18 @@ use std::str::FromStr;
 /// ```
 ///
 /// Note: if you need the other data provided by the `forwarded` header, have a look at the [`rfc7239`](https://docs.rs/rfc7239) crate.
-pub fn extract_forwarded_header(header_value: &str) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
+pub fn extract_forwarded_header(
+    header_value: &str,
+) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
     parse(header_value).filter_map(|forward| match forward {
         Ok(Forwarded {
-               forwarded_for:
-               Some(NodeIdentifier {
-                        name: NodeName::Ip(ip),
-                        ..
-                    }),
-               ..
-           }) => Some(ip),
+            forwarded_for:
+                Some(NodeIdentifier {
+                    name: NodeName::Ip(ip),
+                    ..
+                }),
+            ..
+        }) => Some(ip),
         _ => None,
     })
 }
@@ -45,7 +47,9 @@ pub fn extract_forwarded_header(header_value: &str) -> impl DoubleEndedIterator<
 ///    extract_x_forwarded_for_header("10.10.10.10,10.10.10.20").collect::<Vec<_>>()
 /// );
 /// ```
-pub fn extract_x_forwarded_for_header(header_value: &str) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
+pub fn extract_x_forwarded_for_header(
+    header_value: &str,
+) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
     CommaSeparatedIterator::new(header_value)
         .map(str::trim)
         .flat_map(|x| IpAddr::from_str(maybe_bracketed(&maybe_quoted(x))))

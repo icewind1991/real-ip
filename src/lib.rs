@@ -55,21 +55,19 @@
 
 pub mod headers;
 
+use crate::headers::{
+    extract_forwarded_header, extract_real_ip_header, extract_x_forwarded_for_header,
+};
 use http::HeaderMap;
+pub use ipnet::IpNet;
 use itertools::Either;
 use std::iter::{empty, once};
 use std::net::IpAddr;
-use crate::headers::{extract_forwarded_header, extract_real_ip_header, extract_x_forwarded_for_header};
-pub use ipnet::IpNet;
 
 /// Get the "real-ip" of an incoming request.
 ///
 /// See the [top level documentation](crate) for more usage details.
-pub fn real_ip(
-    headers: &HeaderMap,
-    remote: IpAddr,
-    trusted_proxies: &[IpNet],
-) -> Option<IpAddr> {
+pub fn real_ip(headers: &HeaderMap, remote: IpAddr, trusted_proxies: &[IpNet]) -> Option<IpAddr> {
     let mut hops = get_forwarded_for(headers).chain(once(remote));
     let first = hops.next();
     let hops = first.iter().copied().chain(hops);
