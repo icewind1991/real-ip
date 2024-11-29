@@ -5,6 +5,7 @@ edition = "2021"
 repository = "https://github.com/icewind1991/real-ip"
 license = "MIT OR Apache-2.0"
 rust-version = "1.60.0"
+description = "Get the \"real ip\" of an incoming request using the \"forwarded\", \"x-forwarded-for\" or \"x-real-ip\" headers set by reverse proxies."
 
 [dependencies]
 http = "1.1.0"
