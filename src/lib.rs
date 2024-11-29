@@ -1,10 +1,6 @@
 //! Get the "real-ip" of an incoming request.
 //!
 //! This uses the "forwarded", "x-forwarded-for" or "x-real-ip" headers set by reverse proxies.
-//! To stop clients from abusing these headers, only headers set by trusted remotes will be accepted.
-//!
-//! Note that if multiple forwarded-for addresses are present, which can be the case when using nested reverse proxies,
-//! all proxies in the chain have to be within the list of trusted proxies.
 //!
 //! ## Trusted proxies
 //!
@@ -12,6 +8,9 @@
 //! which are allowed to set the forwarded headers.
 //!
 //! Trusted proxies are configured as a list of [`IpNetwork`]s, which can be a single ip or an ip range.
+//!
+//! Note that if multiple forwarded-for addresses are present, which can be the case when using nested reverse proxies,
+//! all proxies in the chain have to be within the list of trusted proxies.
 //!
 //! ## Examples
 //!
@@ -169,3 +168,7 @@ fn maybe_bracketed(x: &str) -> &str {
         x
     }
 }
+
+#[allow(dead_code)]
+#[doc = include_str!("../README.md")]
+fn test_readme_examples() {}
