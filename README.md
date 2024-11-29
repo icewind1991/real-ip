@@ -20,6 +20,6 @@ let request = Request::builder().header("x-forwarded-for", "192.0.2.1").body(())
 let trusted_proxies = [
     IpAddr::from([10, 0, 0, 1]).into(),
 ];
-let client_ip = real_ip(&request, incoming_ip, &trusted_proxies);
+let client_ip = real_ip(request.headers(), incoming_ip, &trusted_proxies);
 assert_eq!(Some(IpAddr::from([192, 0, 2, 1])), client_ip);
 ```

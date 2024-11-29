@@ -31,7 +31,7 @@
 //!     IpAddr::from([10, 0, 0, 1]).into(),
 //!     IpNetwork::new(IpAddr::from([10, 10, 10, 0]), 24).unwrap(), // 10.10.10.0/24
 //! ];
-//! let client_ip = real_ip(&request, incoming_ip, &trusted_proxies);
+//! let client_ip = real_ip(request.headers(), incoming_ip, &trusted_proxies);
 //! assert_eq!(Some(IpAddr::from([192, 0, 2, 1])), client_ip);
 //! ```
 //!
@@ -51,12 +51,12 @@
 //!     IpAddr::from([10, 0, 0, 1]).into(),
 //!     IpNetwork::new(IpAddr::from([10, 10, 10, 0]), 24).unwrap(),
 //! ];
-//! let client_ip = real_ip(&request, incoming_ip, &trusted_proxies);
+//! let client_ip = real_ip(request.headers(), incoming_ip, &trusted_proxies);
 //! assert_eq!(Some(IpAddr::from([203, 0, 113, 10])), client_ip);
 //! ```
 
 use comma_separated::CommaSeparatedIterator;
-use http::Request;
+use http::HeaderMap;
 use ipnetwork::IpNetwork;
 use itertools::Either;
 use rfc7239::{parse, Forwarded, NodeIdentifier, NodeName};
@@ -68,12 +68,12 @@ use std::str::FromStr;
 /// Get the "real-ip" of an incoming request.
 ///
 /// See the [top level documentation](crate) for more usage details.
-pub fn real_ip<B>(
-    request: &Request<B>,
+pub fn real_ip(
+    headers: &HeaderMap,
     remote: IpAddr,
     trusted_proxies: &[IpNetwork],
 ) -> Option<IpAddr> {
-    let mut hops = get_forwarded_for(request).chain(once(remote));
+    let mut hops = get_forwarded_for(headers).chain(once(remote));
     let first = hops.next();
     let hops = first.iter().copied().chain(hops);
 
@@ -93,8 +93,7 @@ pub fn real_ip<B>(
 /// Extracts the ip addresses from the "forwarded for" chain from a request
 ///
 /// Note that this doesn't perform any validation against clients forging the headers
-pub fn get_forwarded_for<B>(request: &Request<B>) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
-    let headers = request.headers();
+pub fn get_forwarded_for(headers: &HeaderMap) -> impl DoubleEndedIterator<Item = IpAddr> + '_ {
     if let Some(header) = headers.get("forwarded") {
         let header = header.to_str().unwrap_or_default();
         let hops = parse(header).filter_map(|forward| match forward {
