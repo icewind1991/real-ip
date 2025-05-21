@@ -1,3 +1,5 @@
+# Moved to https://codeberg.org/icewind/real-ip
+
 # real-ip
 
 Get the "real-ip" of an incoming request using the "forwarded", "x-forwarded-for" or "x-real-ip" headers set by reverse proxies.
